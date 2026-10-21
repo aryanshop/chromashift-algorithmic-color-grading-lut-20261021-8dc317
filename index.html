@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChromaShift: Algorithmic Color Grading & LUT Playground</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                <path d="M2 12h20"></path>
+            </svg>
+            <h1>ChromaShift</h1>
+        </div>
+        <div class="header-actions">
+            <button id="btn-reset" class="btn secondary" title="Reset all adjustments">Reset All</button>
+            <button id="btn-export-cube" class="btn primary" title="Export 3D LUT (.cube)">Export .CUBE</button>
+            <button id="btn-export-img" class="btn primary" title="Download Graded Image">Save Image</button>
+        </div>
+    </header>
+
+    <main class="workspace">
+        <!-- Left Sidebar: Presets & Tools Nav -->
+        <aside class="sidebar-left">
+            <section class="panel">
+                <h3>Film Presets</h3>
+                <div class="preset-grid">
+                    <button class="preset-card" data-preset="normal">Normal</button>
+                    <button class="preset-card" data-preset="technicolor">Technicolor</button>
+                    <button class="preset-card" data-preset="bleach">Bleach Bypass</button>
+                    <button class="preset-card" data-preset="cross">Cross Process</button>
+                    <button class="preset-card" data-preset="noir">Neo Noir</button>
+                    <button class="preset-card" data-preset="cyberpunk">Cyberpunk</button>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h3>Sample Image</h3>
+                <div class="sample-grid">
+                    <button class="sample-btn" data-sample="portrait">Portrait</button>
+                    <button class="sample-btn" data-sample="landscape">Landscape</button>
+                    <button class="sample-btn" data-sample="urban">Urban</button>
+                </div>
+                <div class="upload-wrapper">
+                    <label for="file-upload" class="btn secondary upload-btn">Upload Custom Image</label>
+                    <input type="file" id="file-upload" accept="image/*">
+                </div>
+            </section>
+
+            <section class="panel">
+                <h3>Histogram</h3>
+                <div class="histogram-container">
+                    <canvas id="histogram-canvas" width="240" height="120"></canvas>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Center Canvas Area -->
+        <section class="canvas-viewport">
+            <div class="viewport-toolbar">
+                <div class="view-mode-toggle">
+                    <button id="btn-compare" class="btn-toggle active" title="Hold to compare original">Hold to Compare</button>
+                    <button id="btn-split" class="btn-toggle" title="Split View">Split View</button>
+                </div>
+                <div class="zoom-controls">
+                    <button id="btn-zoom-out" class="icon-btn">-</button>
+                    <span id="zoom-level">100%</span>
+                    <button id="btn-zoom-in" class="icon-btn">+</button>
+                    <button id="btn-fit" class="icon-btn">Fit</button>
+                </div>
+            </div>
+            <div class="canvas-wrapper" id="canvas-container">
+                <canvas id="editor-canvas"></canvas>
+            </div>
+        </section>
+
+        <!-- Right Sidebar: Controls & Grading Wheels -->
+        <aside class="sidebar-right">
+            <div class="tabs">
+                <button class="tab-btn active" data-target="tab-basic">Basic</button>
+                <button class="tab-btn" data-target="tab-wheels">Wheels</button>
+                <button class="tab-btn" data-target="tab-split">Split Tone</button>
+                <button class="tab-btn" data-target="tab-effects">Effects</button>
+            </div>
+
+            <!-- Basic Tab -->
+            <div class="tab-content active" id="tab-basic">
+                <div class="control-group">
+                    <label>Exposure <span id="val-exposure">0.00</span></label>
+                    <input type="range" id="range-exposure" min="-2" max="2" step="0.05" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Contrast <span id="val-contrast">1.00</span></label>
+                    <input type="range" id="range-contrast" min="0.5" max="1.8" step="0.02" value="1">
+                </div>
+                <div class="control-group">
+                    <label>Highlights <span id="val-highlights">0</span></label>
+                    <input type="range" id="range-highlights" min="-100" max="100" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Shadows <span id="val-shadows">0</span></label>
+                    <input type="range" id="range-shadows" min="-100" max="100" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Saturation <span id="val-saturation">1.00</span></label>
+                    <input type="range" id="range-saturation" min="0" max="2" step="0.05" value="1">
+                </div>
+                <div class="control-group">
+                    <label>Vibrance <span id="val-vibrance">0</span></label>
+                    <input type="range" id="range-vibrance" min="-100" max="100" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Temperature <span id="val-temp">0</span></label>
+                    <input type="range" id="range-temp" min="-100" max="100" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Tint <span id="val-tint">0</span></label>
+                    <input type="range" id="range-tint" min="-100" max="100" step="1" value="0">
+                </div>
+            </div>
+
+            <!-- Wheels Tab -->
+            <div class="tab-content" id="tab-wheels">
+                <div class="wheel-section">
+                    <h4>Lift (Shadows)</h4>
+                    <div class="color-wheel-container">
+                        <canvas id="wheel-lift" width="140" height="140"></canvas>
+                        <div class="wheel-controls">
+                            <input type="range" id="range-lift-lum" min="-50" max="50" value="0" title="Lift Luminance">
+                        </div>
+                    </div>
+                </div>
+                <div class="wheel-section">
+                    <h4>Gamma (Midtones)</h4>
+                    <div class="color-wheel-container">
+                        <canvas id="wheel-gamma" width="140" height="140"></canvas>
+                        <div class="wheel-controls">
+                            <input type="range" id="range-gamma-lum" min="-50" max="50" value="0" title="Gamma Luminance">
+                        </div>
+                    </div>
+                </div>
+                <div class="wheel-section">
+                    <h4>Gain (Highlights)</h4>
+                    <div class="color-wheel-container">
+                        <canvas id="wheel-gain" width="140" height="140"></canvas>
+                        <div class="wheel-controls">
+                            <input type="range" id="range-gain-lum" min="-50" max="50" value="0" title="Gain Luminance">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Split Tone Tab -->
+            <div class="tab-content" id="tab-split">
+                <div class="control-group">
+                    <label>Highlight Hue <span id="val-hl-hue">40</span>°</label>
+                    <input type="range" id="range-hl-hue" min="0" max="360" step="1" value="40">
+                </div>
+                <div class="control-group">
+                    <label>Highlight Saturation <span id="val-hl-sat">0</span>%</label>
+                    <input type="range" id="range-hl-sat" min="0" max="100" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Shadow Hue <span id="val-sh-hue">210</span>°</label>
+                    <input type="range" id="range-sh-hue" min="0" max="360" step="1" value="210">
+                </div>
+                <div class="control-group">
+                    <label>Shadow Saturation <span id="val-sh-sat">0</span>%</label>
+                    <input type="range" id="range-sh-sat" min="0" max="100" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Balance <span id="val-split-balance">0</span></label>
+                    <input type="range" id="range-split-balance" min="-100" max="100" step="1" value="0">
+                </div>
+            </div>
+
+            <!-- Effects Tab -->
+            <div class="tab-content" id="tab-effects">
+                <div class="control-group">
+                    <label>Vignette Amount <span id="val-vignette">0</span>%</label>
+                    <input type="range" id="range-vignette" min="0" max="100" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Vignette Midpoint <span id="val-vignette-mid">50</span>%</label>
+                    <input type="range" id="range-vignette-mid" min="10" max="90" step="1" value="50">
+                </div>
+                <div class="control-group">
+                    <label>Film Grain <span id="val-grain">0</span>%</label>
+                    <input type="range" id="range-grain" min="0" max="100" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Sharpen <span id="val-sharpen">0</span>%</label>
+                    <input type="range" id="range-sharpen" min="0" max="100" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Halation Glow <span id="val-halation">0</span>%</label>
+                    <input type="range" id="range-halation" min="0" max="100" step="1" value="0">
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
